@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load stream_extras %}
+
+{% block content %}
+<h1>Campaign: {{ campaign.name }} (ID: {{ campaign.keitaro_id }})</h1>
+<p>Geo: {{ campaign.geo }}</p>
+<p>
+    <button id="fetch-btn">Fetch Streams</button>
+    <button id="push-btn">Push to Keitaro</button>
+    <button id="cancel-btn">Cancel Changes</button>
+</p>
+
+<div id="streams-container">
+    <!-- Streams will be loaded via AJAX -->
+    <p>Loading...</p>
+</div>
+
+<script>
+    window.campaignId = {{ campaign.id }};
+</script>
+{% endblock %}
