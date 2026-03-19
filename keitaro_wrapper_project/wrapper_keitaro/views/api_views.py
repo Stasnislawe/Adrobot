@@ -6,7 +6,8 @@ from django.shortcuts import get_object_or_404
 from ..models import Campaign, Stream, Offer, StreamOffer
 from ..keitaro_client import KeitaroClient
 from ..utils import recalculate_stream_weights
-from .helpers import get_stream_data, push_stream_to_keitaro
+from .helpers import get_stream_data, push_stream_to_keitaro, \
+    update_synced_flags  # push_stream_to_keitaro используется только в api_push_streams
 
 
 @require_http_methods(["GET"])
@@ -143,10 +144,24 @@ def api_search_offers(request):
 
 
 @require_POST
+def api_restore_offer(request, stream_offer_id):
+    """
+    Восстанавливает ранее удалённый (деактивированный) оффер в потоке локально.
+    """
+    so = get_object_or_404(StreamOffer, pk=stream_offer_id)
+    stream = so.stream
+    so.is_active = True
+    so.synced = False
+    so.save()
+    recalculate_stream_weights(stream)
+    return JsonResponse(get_stream_data(stream))
+
+
+@require_POST
 def api_add_offer(request, stream_id):
     """
-    Добавляет оффер в поток и синхронизирует с Keitaro.
-    Ожидает JSON: {"offer_id": 123}
+    Добавляет оффер в поток (только локально, без отправки в Keitaro).
+    После добавления проверяется соответствие с Keitaro для корректной подсветки.
     """
     stream = get_object_or_404(Stream, pk=stream_id)
     try:
@@ -182,18 +197,15 @@ def api_add_offer(request, stream_id):
         return JsonResponse({'error': 'Offer already active in this stream'}, status=400)
 
     recalculate_stream_weights(stream)
-
-    success, error = push_stream_to_keitaro(stream)
-    if not success:
-        return JsonResponse({'error': error}, status=500)
-
+    update_synced_flags(stream)  # сверяем с Keitaro
     return JsonResponse(get_stream_data(stream))
 
 
 @require_POST
 def api_remove_offer(request, stream_offer_id):
     """
-    Мягко удаляет оффер из потока (деактивирует) и синхронизирует с Keitaro.
+    Мягко удаляет оффер из потока (деактивирует) локально.
+    После удаления проверяется соответствие с Keitaro.
     """
     so = get_object_or_404(StreamOffer, pk=stream_offer_id)
     stream = so.stream
@@ -202,18 +214,15 @@ def api_remove_offer(request, stream_offer_id):
     so.pinned = False
     so.save()
     recalculate_stream_weights(stream)
-
-    success, error = push_stream_to_keitaro(stream)
-    if not success:
-        return JsonResponse({'error': error}, status=500)
-
+    update_synced_flags(stream)  # сверяем с Keitaro
     return JsonResponse(get_stream_data(stream))
 
 
 @require_POST
 def api_restore_offer(request, stream_offer_id):
     """
-    Восстанавливает ранее удалённый (деактивированный) оффер в потоке.
+    Восстанавливает ранее удалённый (деактивированный) оффер в потоке локально.
+    После восстановления проверяется соответствие с Keitaro.
     """
     so = get_object_or_404(StreamOffer, pk=stream_offer_id)
     stream = so.stream
@@ -221,19 +230,15 @@ def api_restore_offer(request, stream_offer_id):
     so.synced = False
     so.save()
     recalculate_stream_weights(stream)
-
-    success, error = push_stream_to_keitaro(stream)
-    if not success:
-        return JsonResponse({'error': error}, status=500)
-
+    update_synced_flags(stream)  # сверяем с Keitaro
     return JsonResponse(get_stream_data(stream))
 
 
 @require_POST
 def api_pin_offer(request, stream_offer_id):
     """
-    Закрепляет (pinned) или открепляет вес оффера.
-    Переключает состояние pinned.
+    Закрепляет (pinned) или открепляет вес оффера локально.
+    После изменения проверяется соответствие с Keitaro.
     """
     so = get_object_or_404(StreamOffer, pk=stream_offer_id)
     stream = so.stream
@@ -241,11 +246,7 @@ def api_pin_offer(request, stream_offer_id):
     so.synced = False
     so.save()
     recalculate_stream_weights(stream)
-
-    success, error = push_stream_to_keitaro(stream)
-    if not success:
-        return JsonResponse({'error': error}, status=500)
-
+    update_synced_flags(stream)  # сверяем с Keitaro
     return JsonResponse(get_stream_data(stream))
 
 

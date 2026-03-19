@@ -1,3 +1,4 @@
+# keitaro_wrapper/views/helpers.py
 from ..models import StreamOffer
 from ..keitaro_client import KeitaroClient
 
@@ -52,6 +53,31 @@ def push_stream_to_keitaro(stream):
     stream.offers.filter(is_active=True).update(synced=True)
     stream.offers.filter(is_active=False).update(synced=False)
     return True, None
+
+
+def update_synced_flags(stream):
+    """
+    Обновляет флаги synced для всех офферов потока на основе текущего состояния в Keitaro.
+    Вызывается после локальных изменений (add, remove, restore, pin).
+    """
+    client = KeitaroClient()
+    try:
+        stream_data = client.get_stream(stream.keitaro_id)
+        keitaro_offers = {o['offer_id']: o.get('share', 0) for o in stream_data.get('offers', [])}
+    except Exception:
+        # Если не можем получить данные из Keitaro, оставляем флаги как есть (они уже False)
+        return
+
+    for so in stream.offers.all():
+        if so.is_active:
+            # Проверяем, есть ли оффер в Keitaro и совпадает ли вес
+            if so.offer.keitaro_id in keitaro_offers and keitaro_offers[so.offer.keitaro_id] == so.weight:
+                so.synced = True
+            else:
+                so.synced = False
+        else:
+            so.synced = False
+        so.save()
 
 
 def get_group_id(client, group_name, group_id_from_settings):

@@ -36,3 +36,14 @@ nav a:hover {
 .btn:hover {
     background-color: #0056b3;
 }
+/* Подсветка строк с несохранёнными изменениями */
+.unsynced-offer {
+    background-color: #fff9c4;  /* светло-желтый */
+}
+
+/* Стиль для удалённых офферов (уже есть, но убедимся) */
+.removed {
+    background-color: #f5f5f5;
+    color: #999;
+    text-decoration: line-through;
+}

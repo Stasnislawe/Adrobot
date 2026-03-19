@@ -30,14 +30,17 @@ $(document).ready(function() {
         $container.empty();
         streams.forEach(function(stream) {
             var $streamDiv = $('<div class="stream" data-stream-id="' + stream.id + '"></div>');
-            if (!stream.offers.every(function(o) { return o.synced; })) {
-                $streamDiv.addClass('unsynced');
-            }
+            // Убрано добавление класса unsynced для всего потока
             $streamDiv.append('<h3>Stream #' + stream.keitaro_id + ' (' + stream.stream_type + ')</h3>');
             if (stream.stream_type === 'offer') {
                 var $table = $('<table><tr><th>Offer ID</th><th>Name</th><th>Weight</th><th>Pinned</th><th>Actions</th></tr></table>');
                 stream.offers.forEach(function(offer) {
-                    var $row = $('<tr class="' + (offer.is_active ? '' : 'removed') + '"></tr>');
+                    // Формируем классы для строки: is_active определяет зачёркнутость, synced — подсветку
+                    var rowClass = offer.is_active ? '' : 'removed';
+                    if (!offer.synced) {
+                        rowClass += ' unsynced-offer';  // добавляем класс для подсветки
+                    }
+                    var $row = $('<tr class="' + rowClass.trim() + '"></tr>');
                     $row.append('<td>' + offer.offer_id + '</td>');
                     $row.append('<td>' + offer.offer_name + '</td>');
                     $row.append('<td>' + offer.weight + '%</td>');
@@ -62,7 +65,7 @@ $(document).ready(function() {
             $container.append($streamDiv);
         });
 
-        // Автокомплит для поиска офферов
+        // Инициализация автокомплита (без изменений)
         $('.offer-search').autocomplete({
             source: '/api/search_offers/',
             minLength: 2,
