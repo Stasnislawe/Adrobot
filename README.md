@@ -26,7 +26,9 @@ Django-приложение для управления кампаниями в 
 
 1. Клонируйте репозиторий:
    ```bash
-   git clone https://github.com/yourusername/keitaro-wrapper.git
+   git clone https://github.com/Stasnislawe/Adrobot.git
+   # Переходим в папку проекта
+   cd keitaro_wrapper_project
 
 2. Создайте виртуальное окружение и активируйте его:
    ```bash
